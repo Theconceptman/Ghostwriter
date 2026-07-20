@@ -175,3 +175,20 @@ model) precisely because the guardrail, not the model, owns fidelity.
 - Any cloud STT/LLM, accounts, telemetry, or payments.
 - Windows/Linux.
 - Real-time translation.
+
+## Amendment — 2026-07-20 (environment-forced substitutions)
+
+Antoine's machine has Command Line Tools only (no full Xcode; installing it
+needs his Apple ID and ~40 GB of the ~19 GB free disk). Two substitutions,
+both preserving every hard constraint (local, $0, private, swappable):
+
+1. **Cleanup engine: llama.cpp instead of MLX.** MLX requires Xcode's Metal
+   build toolchain; llama.cpp compiles its Metal kernels at runtime and
+   installs via Homebrew. Cleanup model: Qwen3-4B-Instruct-2507 GGUF Q4_K_M
+   (~2.4 GB) served by a Ghostwriter-managed local `llama-server` subprocess.
+   Any GGUF model can be swapped in later.
+2. **Tests: Swift Testing instead of XCTest.** CLT ships `Testing.framework`
+   but not XCTest; `Scripts/test.sh` supplies the framework search path.
+
+Resolved toolchain (verified building 2026-07-20): Swift 6.2.3, WhisperKit
+0.18.0, GRDB 6.29.3, macOS 26.1.

@@ -1,0 +1,1 @@
+print("Ghostwriter app placeholder")
