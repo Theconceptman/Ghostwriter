@@ -193,7 +193,15 @@ both preserving every hard constraint (local, $0, private, swappable):
 Resolved toolchain (verified building 2026-07-20): Swift 6.2.3, WhisperKit
 0.18.0, GRDB 6.29.3, macOS 26.1.
 
-3. **Whisper prompt conditioning disabled.** WhisperKit 0.18's `promptTokens`
+3. **Xcode is available but not adopted (2026-07-21).** A full Xcode 26.3
+   install was found at `/Applications/Xcode.app` (`xcode-select` was just
+   pointed at the standalone CLT). This makes MLX viable, but Antoine chose to
+   keep llama.cpp: v1.0.0 was already verified end-to-end, both engines run on
+   the same GPU/Neural Engine with no user-visible difference, and switching
+   would be rework without a functional payoff. Revisit only if a concrete
+   reason to want in-process Swift (vs. the `llama-server` subprocess) comes up.
+
+4. **Whisper prompt conditioning disabled.** WhisperKit 0.18's `promptTokens`
    path returns empty transcripts for large-v3-turbo (immediate EOT with
    correctly encoded tokens; reproduced 2026-07-20 with and without timestamp
    suppression). Spec §4's dictionary therefore relies on its other two layers —
