@@ -41,6 +41,14 @@ struct Harness {
             try await transcriber.preload { print("  [status] \($0)") }
             print("Model load: \(String(format: "%.2f", -t0.timeIntervalSinceNow))s")
 
+            if args.contains("--warmup") {
+                // Mirror app conditions: the app warms the model at launch, so
+                // measure with the in-process first-inference cost already paid.
+                let silence = [Float](repeating: 0, count: 16000)
+                _ = try? await transcriber.transcribe(audio: silence, contextPrompt: nil)
+                print("Warmup inference done.")
+            }
+
             var cleaner: LlamaServerCleaner?
             if !noClean && mode != .raw {
                 let c = LlamaServerCleaner()

@@ -26,7 +26,13 @@ final class DictationController {
         audio.onLevel = { [weak self] level in self?.hud.updateLevel(level) }
         let transcriber = state.transcriber
         let cleaner = state.cleaner
-        Task.detached { try? await transcriber.preload() }              // warm STT at launch
+        Task.detached {
+            // Warm STT at launch and pay the first-inference cost now,
+            // not on the user's first dictation.
+            try? await transcriber.preload()
+            _ = try? await transcriber.transcribe(
+                audio: [Float](repeating: 0, count: 16000), contextPrompt: nil)
+        }
         Task.detached { try? await cleaner.ensureRunning(readyTimeout: 600) } // warm LLM at launch
     }
 

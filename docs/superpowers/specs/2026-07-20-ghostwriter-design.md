@@ -192,3 +192,11 @@ both preserving every hard constraint (local, $0, private, swappable):
 
 Resolved toolchain (verified building 2026-07-20): Swift 6.2.3, WhisperKit
 0.18.0, GRDB 6.29.3, macOS 26.1.
+
+3. **Whisper prompt conditioning disabled.** WhisperKit 0.18's `promptTokens`
+   path returns empty transcripts for large-v3-turbo (immediate EOT with
+   correctly encoded tokens; reproduced 2026-07-20 with and without timestamp
+   suppression). Spec §4's dictionary therefore relies on its other two layers —
+   deterministic alias substitution and the cleanup model's spelling
+   reference — which the E2E gate verified working ("use effect" → "useEffect").
+   Re-test on WhisperKit upgrades via `GW_EXPERIMENTAL_PROMPT=1`.
