@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             showOnboarding()
         }
+        if CommandLine.arguments.contains("--open-main") { showMainWindow() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

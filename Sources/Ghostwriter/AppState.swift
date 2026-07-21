@@ -29,11 +29,16 @@ final class AppState {
     }
 
     private init() {
-        let dir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/Ghostwriter")
+        let path: String
+        if let override = ProcessInfo.processInfo.environment["GW_DB_PATH"] {
+            path = override   // dev/verification runs stay out of the real history
+        } else {
+            path = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Application Support/Ghostwriter/ghostwriter.sqlite").path
+        }
         // A dictation app that can't open its history DB can't run meaningfully;
         // crashing at launch with a clear path beats limping along silently.
-        db = try! AppDatabase(path: dir.appendingPathComponent("ghostwriter.sqlite").path)
+        db = try! AppDatabase(path: path)
     }
 }
 
