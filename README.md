@@ -15,10 +15,17 @@ rewritten. A free, fully local replacement for Wispr Flow on macOS.
 ## Install (first time)
 
 ```bash
-./Scripts/make_app.sh
-open dist            # then drag Ghostwriter.app to /Applications
-open /Applications/Ghostwriter.app
+./Scripts/install.sh
 ```
+
+This builds Ghostwriter, installs it to `/Applications`, and launches it —
+after that it's a normal Mac app: find it via Spotlight (⌘Space, type
+"Ghostwriter") or Finder → Applications. It has **no Dock icon and no menu
+bar** — that's intentional (it's a menu-bar-only app) — look for the ghost
+icon in your Mac's menu bar at the top of the screen.
+
+Re-run `./Scripts/install.sh` any time after a code change to rebuild and
+reinstall in place.
 
 The welcome window walks you through:
 1. **Microphone** permission (macOS prompt)
