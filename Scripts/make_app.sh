@@ -1,0 +1,35 @@
+#!/bin/bash
+# Builds Ghostwriter.app from the SwiftPM binary (no Xcode required).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+swift build -c release
+APP=dist/Ghostwriter.app
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp .build/release/Ghostwriter "$APP/Contents/MacOS/Ghostwriter"
+
+cat > "$APP/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key><string>Ghostwriter</string>
+    <key>CFBundleIdentifier</key><string>com.antoine.ghostwriter</string>
+    <key>CFBundleName</key><string>Ghostwriter</string>
+    <key>CFBundleDisplayName</key><string>Ghostwriter</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>15.0</string>
+    <key>LSUIElement</key><true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Ghostwriter listens while you hold the dictation key. Audio never leaves this Mac.</string>
+    <key>NSHumanReadableCopyright</key><string>© 2026 Antoine Tramble</string>
+</dict>
+</plist>
+PLIST
+
+codesign --force --deep --sign - "$APP"
+echo "Built: $APP"
+echo "NOTE: ad-hoc signature — rebuilding resets Accessibility permission; re-grant after each rebuild."
