@@ -13,8 +13,16 @@ final class ModelManager: ObservableObject {
         do {
             if !LlamaServerCleaner.binaryExists() {
                 status = "Installing llama.cpp via Homebrew…"
+                let brewPaths = [
+                    "/opt/homebrew/bin/brew",  // Apple Silicon
+                    "/usr/local/bin/brew"       // Intel
+                ]
+                guard let brewPath = brewPaths.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
+                    throw NSError(domain: "Ghostwriter", code: 5, userInfo: [NSLocalizedDescriptionKey:
+                        "Homebrew not found. Install it first: /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\", then retry."])
+                }
                 let p = Process()
-                p.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/brew")
+                p.executableURL = URL(fileURLWithPath: brewPath)
                 p.arguments = ["install", "llama.cpp"]
                 try p.run()
                 await withCheckedContinuation { cont in
