@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -72,9 +74,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            dist/Ghostwriter.app
-            dist/Ghostwriter.dmg
+          files: dist/Ghostwriter.dmg
           body: "Universal binary for Apple Silicon (M1+) and Intel Macs"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
