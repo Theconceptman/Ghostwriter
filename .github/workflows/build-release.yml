@@ -1,0 +1,80 @@
+name: Build Universal Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build for Apple Silicon (arm64)
+        run: |
+          swift build -c release
+          cp .build/release/Ghostwriter .build/Ghostwriter-arm64
+          rm -rf .build/release
+
+      - name: Build for Intel (x86_64)
+        run: |
+          arch -x86_64 bash -c 'swift build -c release'
+          cp .build/release/Ghostwriter .build/Ghostwriter-x86_64
+
+      - name: Create universal binary
+        run: |
+          lipo -create .build/Ghostwriter-arm64 .build/Ghostwriter-x86_64 -output .build/Ghostwriter-universal
+          file .build/Ghostwriter-universal
+
+      - name: Build app bundle
+        run: |
+          ./Scripts/gen_icon.sh
+
+          APP=dist/Ghostwriter.app
+          rm -rf "$APP"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp .build/Ghostwriter-universal "$APP/Contents/MacOS/Ghostwriter"
+          cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+
+          cat > "$APP/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key><string>Ghostwriter</string>
+              <key>CFBundleIdentifier</key><string>com.antoine.ghostwriter</string>
+              <key>CFBundleName</key><string>Ghostwriter</string>
+              <key>CFBundleDisplayName</key><string>Ghostwriter</string>
+              <key>CFBundlePackageType</key><string>APPL</string>
+              <key>CFBundleIconFile</key><string>AppIcon</string>
+              <key>CFBundleShortVersionString</key><string>1.0.0</string>
+              <key>CFBundleVersion</key><string>1</string>
+              <key>LSMinimumSystemVersion</key><string>15.0</string>
+              <key>LSUIElement</key><true/>
+              <key>NSMicrophoneUsageDescription</key>
+              <string>Ghostwriter listens while you hold the dictation key. Audio never leaves this Mac.</string>
+              <key>NSHumanReadableCopyright</key><string>© 2026 Antoine Tramble</string>
+          </dict>
+          </plist>
+          PLIST
+
+          codesign --force --deep --sign - "$APP"
+
+      - name: Create DMG
+        run: |
+          mkdir -p dmg-tmp
+          cp -R dist/Ghostwriter.app dmg-tmp/
+          ln -s /Applications dmg-tmp/Applications
+          hdiutil create -volname "Ghostwriter" -srcfolder dmg-tmp -ov -format UDZO -o dist/Ghostwriter.dmg
+          rm -rf dmg-tmp
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/Ghostwriter.app
+            dist/Ghostwriter.dmg
+          body: "Universal binary for Apple Silicon (M1+) and Intel Macs"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
