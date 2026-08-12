@@ -36,6 +36,20 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-codesign --force --deep --sign - "$APP"
+SIGN_IDENTITY="${GHOSTWRITER_SIGN_IDENTITY:-}"
+if [ -z "$SIGN_IDENTITY" ]; then
+  SIGN_IDENTITY=$(security find-identity -v -p codesigning \
+    | sed -n 's/^[[:space:]]*[0-9][0-9]*) \([0-9A-F]\{40\}\) .*/\1/p' \
+    | head -1)
+fi
+
+if [ -n "$SIGN_IDENTITY" ]; then
+  codesign --force --deep --sign "$SIGN_IDENTITY" "$APP"
+  echo "Signed with a stable Keychain identity so macOS permissions survive rebuilds."
+else
+  codesign --force --deep --sign - "$APP"
+  echo "WARNING: No Keychain code-signing identity was found."
+  echo "This ad-hoc signature will reset Accessibility permission after rebuilds."
+fi
+
 echo "Built: $APP"
-echo "NOTE: ad-hoc signature — rebuilding resets Accessibility permission; re-grant after each rebuild."

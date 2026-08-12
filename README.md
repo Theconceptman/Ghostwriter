@@ -32,15 +32,20 @@ The welcome window walks you through:
 2. **Accessibility** permission (System Settings → Privacy & Security →
    Accessibility → enable Ghostwriter) — this is how it sees your hotkey in any
    app and pastes at your cursor
-3. Setting **System Settings → Keyboard → “Press 🌐 key to” → Do Nothing** so
-   holding Fn doesn't also open the emoji picker
+3. Choosing your dictation key (Control is the default)
 4. Model downloads (~4 GB, one time; needs `brew` for llama.cpp if not installed)
 5. A try-it box for your first dictation
 
 ## Daily use
 
-- **Hold Fn** (configurable: right ⌘ / right ⌥ in Settings), talk, release.
-- A small floating pill shows a live waveform while it listens.
+- **Hold Control**, talk, release.
+- **Double-tap Control** to start hands-free dictation; double-tap again to stop
+  and process it.
+- Press **Control–Command–V** to paste the latest successful dictation at the
+  current cursor if it did not land in a text field the first time.
+- The hold key is configurable (Fn / right ⌘ / right ⌥) in Settings.
+- A compact waveform-only pill shows live microphone energy while it listens.
+- Subtle native sounds confirm recording start and release.
 - Text lands at your cursor in the frontmost app; your old clipboard is restored.
 - A yellow **verbatim** flash/badge means the guardrail rejected the AI cleanup
   and used your exact words instead.
@@ -57,8 +62,10 @@ and punctuation. Everything else gets *Light touch*. Editable in Settings.
 
 ## Known caveats (v1)
 
-- **Ad-hoc code signature:** rebuilding the app resets its Accessibility grant —
-  re-enable it in System Settings after each rebuild.
+- The build script uses the first valid code-signing identity in your Keychain so
+  Accessibility permission survives rebuilds. Set `GHOSTWRITER_SIGN_IDENTITY`
+  to choose a specific identity. Without one, it falls back to ad-hoc signing,
+  which requires re-enabling Accessibility after each rebuild.
 - **Password fields:** macOS secure input blocks synthetic paste; Ghostwriter
   leaves the text on your clipboard and notifies you instead.
 - Whisper-level glossary biasing is disabled pending a WhisperKit fix
@@ -84,7 +91,7 @@ plan: `docs/superpowers/plans/`. Logs: `~/Library/Application Support/Ghostwrite
 
 | Symptom | Fix |
 |---|---|
-| Hotkey does nothing | Re-grant Accessibility (see caveat above); check Pause state in menu |
+| Hotkey does nothing | Confirm Accessibility is enabled; check Pause state in menu |
 | “llama-server exited early” | `tail ~/Library/Application\ Support/Ghostwriter/llama-server.log`; `brew reinstall llama.cpp` |
 | First dictation slow | Models warm at launch; give it ~30 s after login |
 | Cleanup feels too cautious | Settings → Advanced → raise guardrail threshold |

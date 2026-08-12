@@ -26,6 +26,14 @@ struct OnboardingView: View {
         }
         .padding(32)
         .frame(width: 560, height: 560)
+        .onAppear { refreshAccessibilityPermission() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAccessibilityPermission()
+        }
+        .onDisappear {
+            axTimer?.invalidate()
+            axTimer = nil
+        }
     }
 
     private var welcome: some View {
@@ -59,13 +67,18 @@ struct OnboardingView: View {
                 HotkeyService.requestAccessibilityPermission()
                 axTimer?.invalidate()
                 axTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-                    if HotkeyService.hasAccessibilityPermission() {
-                        DispatchQueue.main.async { axGranted = true }
-                        axTimer?.invalidate()
-                    }
+                    refreshAccessibilityPermission()
                 }
             }.buttonStyle(.borderedProminent).disabled(axGranted)
             if axGranted { Button("Continue") { step = 3 } }
+        }
+    }
+
+    private func refreshAccessibilityPermission() {
+        axGranted = HotkeyService.hasAccessibilityPermission()
+        if axGranted {
+            axTimer?.invalidate()
+            axTimer = nil
         }
     }
     private var globeKey: some View {

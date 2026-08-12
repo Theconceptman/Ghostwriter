@@ -1,10 +1,12 @@
 import AppKit
 import Carbon.HIToolbox
+import GhostwriterCore
 
 enum HotkeyChoice: String, Codable, CaseIterable {
-    case fn, rightCommand, rightOption
+    case control, fn, rightCommand, rightOption
     var displayName: String {
         switch self {
+        case .control: return "Control (⌃)"
         case .fn: return "Fn (Globe)"
         case .rightCommand: return "Right ⌘"
         case .rightOption: return "Right ⌥"
@@ -20,8 +22,12 @@ final class HotkeyService {
     var choice: HotkeyChoice = .fn
     var onPress: (() -> Void)?
     var onRelease: (() -> Void)?
+    var onLatchToggle: (() -> Void)?
+    var onPasteLast: (() -> Void)?
+    var isLatched = false
     private var monitors: [Any] = []
     private var isDown = false
+    private var controlGesture = ControlGestureInterpreter()
 
     static func hasAccessibilityPermission() -> Bool { AXIsProcessTrusted() }
     static func requestAccessibilityPermission() {
@@ -31,12 +37,14 @@ final class HotkeyService {
 
     func start() {
         stop()
-        let handler: (NSEvent) -> Void = { [weak self] event in self?.handle(event) }
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: handler) {
+        let mask: NSEvent.EventTypeMask = [.flagsChanged, .keyDown]
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] event in
+            _ = self?.handle(event)
+        }) {
             monitors.append(global)
         }
-        if let local = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { event in
-            handler(event); return event
+        if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in
+            self?.handle(event) == true ? nil : event
         }) {
             monitors.append(local)
         }
@@ -44,25 +52,59 @@ final class HotkeyService {
 
     func stop() {
         for m in monitors { NSEvent.removeMonitor(m) }
-        monitors.removeAll(); isDown = false
+        monitors.removeAll()
+        isDown = false
+        controlGesture.reset()
     }
 
-    private func handle(_ event: NSEvent) {
+    @discardableResult
+    private func handle(_ event: NSEvent) -> Bool {
+        if event.type == .keyDown {
+            guard !event.isARepeat,
+                  event.keyCode == UInt16(kVK_ANSI_V),
+                  event.modifierFlags.contains(.control),
+                  event.modifierFlags.contains(.command) else { return false }
+            DispatchQueue.main.async { [weak self] in self?.onPasteLast?() }
+            return true
+        }
+
+        if choice == .control {
+            guard event.keyCode == UInt16(kVK_Control)
+                    || event.keyCode == UInt16(kVK_RightControl) else { return false }
+            let action = controlGesture.handle(
+                isDown: event.modifierFlags.contains(.control),
+                at: event.timestamp,
+                isLatched: isLatched)
+            DispatchQueue.main.async { [weak self] in
+                switch action {
+                case .press: self?.onPress?()
+                case .release: self?.onRelease?()
+                case .toggleLatch: self?.onLatchToggle?()
+                case .ignore: break
+                }
+            }
+            return false
+        }
+
         let downNow: Bool
         switch choice {
+        case .control: return false
         case .fn:
             downNow = event.modifierFlags.contains(.function)
         case .rightCommand:
-            guard event.keyCode == UInt16(kVK_RightCommand) else { return }
+            guard event.keyCode == UInt16(kVK_RightCommand) else { return false }
             downNow = event.modifierFlags.contains(.command)
         case .rightOption:
-            guard event.keyCode == UInt16(kVK_RightOption) else { return }
+            guard event.keyCode == UInt16(kVK_RightOption) else { return false }
             downNow = event.modifierFlags.contains(.option)
         }
-        guard downNow != isDown else { return }
+
+        guard downNow != isDown else { return false }
         isDown = downNow
+
         DispatchQueue.main.async { [weak self] in
             downNow ? self?.onPress?() : self?.onRelease?()
         }
+        return false
     }
 }

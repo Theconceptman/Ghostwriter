@@ -1,6 +1,7 @@
 import SwiftUI
 import ServiceManagement
 import GhostwriterCore
+import Carbon.HIToolbox
 
 struct SettingsView: View {
     @State private var hotkey = AppState.shared.hotkey
@@ -10,18 +11,32 @@ struct SettingsView: View {
     @State private var newBundleID = ""
     @State private var newMode: CleanupMode = .verbatimTechnical
     @State private var showAdvanced = false
+    @State private var isRecordingHotkey = false
+    @State private var recordingStatus = ""
 
     var body: some View {
         Form {
             Section("Hotkey") {
-                Picker("Hold to dictate:", selection: $hotkey) {
-                    ForEach(HotkeyChoice.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                HStack {
+                    Picker("Hold to dictate:", selection: $hotkey) {
+                        ForEach(HotkeyChoice.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                    }
+                    .onChange(of: hotkey) { _, v in
+                        AppState.shared.hotkey = v
+                        (NSApp.delegate as? AppDelegate)?.hotkeyChanged()
+                    }
+                    Button(isRecordingHotkey ? "Listening…" : "Auto-detect") {
+                        if !isRecordingHotkey {
+                            startHotkeyRecording()
+                        }
+                    }
+                    .disabled(isRecordingHotkey)
                 }
-                .onChange(of: hotkey) { _, v in
-                    AppState.shared.hotkey = v
-                    (NSApp.delegate as? AppDelegate)?.hotkeyChanged()
+                if !recordingStatus.isEmpty {
+                    Text(recordingStatus)
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                Text("Fn users: set System Settings → Keyboard → “Press 🌐 key to” → Do Nothing.")
+                Text("Control supports hold-to-talk and double-tap hands-free mode. Press ⌃⌘V to paste your latest dictation.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Per-app modes") {
@@ -67,6 +82,53 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .onAppear { profiles = (try? AppState.shared.db.allProfiles()) ?? [] }
+    }
+
+    private func startHotkeyRecording() {
+        isRecordingHotkey = true
+        recordingStatus = "Hold any key…"
+        var monitor: Any?
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged, .keyDown]) { event in
+            var detected: HotkeyChoice?
+
+            if event.type == .keyDown {
+                if event.keyCode == UInt16(kVK_Control) || event.keyCode == UInt16(kVK_RightControl) {
+                    detected = .control
+                } else if event.keyCode == UInt16(kVK_RightCommand) {
+                    detected = .rightCommand
+                } else if event.keyCode == UInt16(kVK_RightOption) {
+                    detected = .rightOption
+                }
+            } else if event.type == .flagsChanged {
+                if event.modifierFlags.contains(.function) {
+                    detected = .fn
+                } else if event.modifierFlags.contains(.command) && event.keyCode == UInt16(kVK_RightCommand) {
+                    detected = .rightCommand
+                } else if event.modifierFlags.contains(.option) && event.keyCode == UInt16(kVK_RightOption) {
+                    detected = .rightOption
+                }
+            }
+
+            DispatchQueue.main.async {
+                if let detected {
+                    hotkey = detected
+                    AppState.shared.hotkey = detected
+                    (NSApp.delegate as? AppDelegate)?.hotkeyChanged()
+                    recordingStatus = "✓ Set to \(detected.displayName)"
+                    isRecordingHotkey = false
+                    if let m = monitor { NSEvent.removeMonitor(m) }
+                } else if !recordingStatus.contains("Unsupported") {
+                    recordingStatus = "Unsupported key. Try: Control, Fn, Right ⌘, or Right ⌥"
+                }
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            if isRecordingHotkey {
+                isRecordingHotkey = false
+                recordingStatus = "Timed out. Try again."
+                if let m = monitor { NSEvent.removeMonitor(m) }
+            }
+        }
     }
 
     private func runningApps() -> [String] {

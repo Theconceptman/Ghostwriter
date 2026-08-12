@@ -9,12 +9,14 @@ final class DictationController {
     private let hotkey = HotkeyService()
     private let audio = AudioCaptureService()
     private let hud = HUDController()
+    private let feedback = RecordingFeedback()
     private let insertion = InsertionService()
     private lazy var appContext = AppContextService(db: state.db)
 
     private var recordingStart: Date?
     private var snapshot: (bundleID: String?, mode: CleanupMode) = (nil, .lightTouch)
     private var isProcessing = false
+    private var isLatched = false
 
     var onStatusChange: ((String) -> Void)?   // feeds the status item's "last dictation"
 
@@ -22,6 +24,8 @@ final class DictationController {
         hotkey.choice = state.hotkey
         hotkey.onPress = { [weak self] in self?.pressed() }
         hotkey.onRelease = { [weak self] in self?.released() }
+        hotkey.onLatchToggle = { [weak self] in self?.toggleLatchedRecording() }
+        hotkey.onPasteLast = { [weak self] in self?.pasteLastDictation() }
         hotkey.start()
         audio.onLevel = { [weak self] level in self?.hud.updateLevel(level) }
         let transcriber = state.transcriber
@@ -45,6 +49,7 @@ final class DictationController {
             try audio.start()
             recordingStart = Date()
             hud.showRecording()
+            feedback.playStart()
         } catch {
             notify("Microphone unavailable", body: error.localizedDescription)
         }
@@ -54,8 +59,14 @@ final class DictationController {
         guard let started = recordingStart else { return }
         recordingStart = nil
         let duration = -started.timeIntervalSinceNow
-        if duration < 0.25 { audio.cancel(); hud.hide(); return }
+        if duration < 0.25 {
+            audio.cancel()
+            feedback.playStop()
+            hud.hide()
+            return
+        }
         let samples = audio.stop()
+        feedback.playStop()
         hud.showProcessing()
         isProcessing = true
         let (bundleID, mode) = snapshot
@@ -68,6 +79,37 @@ final class DictationController {
                                                 guardrailThreshold: state.guardrailThreshold)
             self.finish(result: result, bundleID: bundleID, duration: duration)
         }
+    }
+
+    private func toggleLatchedRecording() {
+        if isLatched {
+            isLatched = false
+            hotkey.isLatched = false
+            released()
+        } else {
+            pressed()
+            isLatched = recordingStart != nil
+            hotkey.isLatched = isLatched
+        }
+    }
+
+    private func pasteLastDictation() {
+        // Pressing Control as part of ⌃⌘V may have started a normal hold. Cancel
+        // that short capture before pasting; a deliberately latched recording stays on.
+        if recordingStart != nil && !isLatched {
+            recordingStart = nil
+            audio.cancel()
+            feedback.playStop()
+            hud.hide()
+        }
+
+        guard let text = try? state.db.recentDictations(limit: 1).first?.cleanedText,
+              !text.isEmpty else {
+            notify("No previous dictation", body: "Dictate something first, then press Control–Command–V.")
+            return
+        }
+        let outcome = insertion.insert(text: text)
+        if case .copiedOnly(let reason) = outcome { notify("Copied instead", body: reason) }
     }
 
     private func finish(result: PipelineResult, bundleID: String?, duration: TimeInterval) {

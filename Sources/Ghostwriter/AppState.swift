@@ -12,7 +12,7 @@ final class AppState {
     private let defaults = UserDefaults.standard
 
     var hotkey: HotkeyChoice {
-        get { HotkeyChoice(rawValue: defaults.string(forKey: "hotkey") ?? "fn") ?? .fn }
+        get { HotkeyChoice(rawValue: defaults.string(forKey: "hotkey") ?? "control") ?? .control }
         set { defaults.set(newValue.rawValue, forKey: "hotkey") }
     }
     var guardrailThreshold: Double {
