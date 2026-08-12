@@ -6,7 +6,18 @@ import GhostwriterCore
 /// Fully local; the only network use is the one-time GGUF download, which
 /// llama-server itself performs and caches (~/Library/Caches/llama.cpp).
 public final class LlamaServerCleaner: TextCleaner {
-    public static let defaultBinary = URL(fileURLWithPath: "/opt/homebrew/bin/llama-server")
+    public static var defaultBinary: URL {
+        let paths = [
+            "/opt/homebrew/bin/llama-server",  // Apple Silicon
+            "/usr/local/bin/llama-server"       // Intel
+        ]
+        for path in paths {
+            if FileManager.default.fileExists(atPath: path) {
+                return URL(fileURLWithPath: path)
+            }
+        }
+        return URL(fileURLWithPath: paths[0])  // Fallback to Apple Silicon
+    }
     public static let defaultModelSpec = "unsloth/Qwen3-4B-Instruct-2507-GGUF:Q4_K_M"
     public static let logURL = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/Ghostwriter/llama-server.log")
