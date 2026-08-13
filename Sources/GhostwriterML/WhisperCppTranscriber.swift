@@ -75,7 +75,7 @@ public final class WhisperCppTranscriber: Transcriber {
 
     private func ensureModel(status: ((String) -> Void)? = nil) async throws {
         let fm = FileManager.default
-        if let size = try? fm.attributesOfItem(atPath: modelFile.path)[.size] as? UInt64,
+        if let size = ((try? fm.attributesOfItem(atPath: modelFile.path)[.size]) as? NSNumber)?.uint64Value,
            size >= Self.minModelBytes { return }
         try? fm.removeItem(at: modelFile) // clear truncated leftovers
         try fm.createDirectory(at: Self.modelDir, withIntermediateDirectories: true)
@@ -85,7 +85,7 @@ public final class WhisperCppTranscriber: Transcriber {
             throw NSError(domain: "Ghostwriter", code: 6, userInfo: [NSLocalizedDescriptionKey:
                 "Speech model download failed: check the connection, then retry."])
         }
-        let size = (try? fm.attributesOfItem(atPath: tmp.path)[.size] as? UInt64) ?? 0
+        let size = ((try? fm.attributesOfItem(atPath: tmp.path)[.size]) as? NSNumber)?.uint64Value ?? 0
         guard size >= Self.minModelBytes else {
             throw NSError(domain: "Ghostwriter", code: 6, userInfo: [NSLocalizedDescriptionKey:
                 "Speech model download incomplete (\(size) bytes): retry."])
