@@ -13,19 +13,31 @@ final class AppState {
 
     var hotkey: HotkeyChoice {
         get { HotkeyChoice(rawValue: defaults.string(forKey: "hotkey") ?? "control") ?? .control }
-        set { defaults.set(newValue.rawValue, forKey: "hotkey") }
+        set {
+            defaults.set(newValue.rawValue, forKey: "hotkey")
+            defaults.synchronize()
+        }
     }
     var guardrailThreshold: Double {
         get { defaults.object(forKey: "guardrailThreshold") as? Double ?? FidelityGuardrail.defaultThreshold }
-        set { defaults.set(newValue, forKey: "guardrailThreshold") }
+        set {
+            defaults.set(newValue, forKey: "guardrailThreshold")
+            defaults.synchronize()
+        }
     }
     var isPaused: Bool {
         get { defaults.bool(forKey: "isPaused") }
-        set { defaults.set(newValue, forKey: "isPaused") }
+        set {
+            defaults.set(newValue, forKey: "isPaused")
+            defaults.synchronize()
+        }
     }
     var hasOnboarded: Bool {
         get { defaults.bool(forKey: "hasOnboarded") }
-        set { defaults.set(newValue, forKey: "hasOnboarded") }
+        set {
+            defaults.set(newValue, forKey: "hasOnboarded")
+            defaults.synchronize()
+        }
     }
 
     private init() {
