@@ -97,8 +97,13 @@ struct OnboardingView: View {
     private var modelSetup: some View {
         VStack(spacing: 12) {
             Text("Downloading your models").font(.title2.bold())
+            #if arch(x86_64)
+            Text("Two one-time downloads (~3 GB total). This Mac uses a compact speech model tuned for Intel; transcription takes a few seconds per phrase. After this, Ghostwriter is fully offline and free forever.")
+                .multilineTextAlignment(.center)
+            #else
             Text("Two one-time downloads (~4 GB total). After this, Ghostwriter is fully offline and free forever.")
                 .multilineTextAlignment(.center)
+            #endif
             ProgressView().opacity(models.ready || models.failed ? 0 : 1)
             Text(models.status).font(.callout)
                 .foregroundStyle(models.failed ? .red : .secondary)
@@ -115,6 +120,11 @@ struct OnboardingView: View {
             Text("Try it!").font(.title2.bold())
             Text("Click into the box below, hold Fn, say something like “um, hello Ghostwriter, this is, uh, my first dictation”, and release.")
                 .multilineTextAlignment(.center)
+            #if arch(x86_64)
+            Text("On this Mac, expect a few seconds before the words land.")
+                .font(.callout).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            #endif
             TextEditor(text: $tryItText).frame(height: 120)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(.secondary.opacity(0.4)))
             Button("Finish setup") { onComplete() }.buttonStyle(.borderedProminent)

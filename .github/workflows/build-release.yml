@@ -61,6 +61,10 @@ jobs:
           </plist>
           PLIST
 
+          VERSION="${GITHUB_REF_NAME#v}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $GITHUB_RUN_NUMBER" "$APP/Contents/Info.plist"
+
           codesign --force --deep --sign - "$APP"
 
       - name: Create DMG

@@ -4,3 +4,5 @@ dist/
 *.app
 /tmp/
 .DS_Store
+.build/
+*.dmg

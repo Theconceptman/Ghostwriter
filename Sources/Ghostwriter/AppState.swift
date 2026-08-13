@@ -6,7 +6,15 @@ import GhostwriterML
 final class AppState {
     static let shared = AppState()
     let db: AppDatabase
+    // Engine per slice: WhisperKit's CoreML pipeline traps on x86_64
+    // (EXC_BAD_ACCESS in TextDecoding.prepareDecoderInputs, crash report
+    // verified 2026-08-12; see the Intel fallback decision record). whisper.cpp
+    // runs out of process on Intel, so an engine crash cannot take the app down.
+    #if arch(x86_64)
+    let transcriber = WhisperCppTranscriber()
+    #else
     let transcriber = WhisperTranscriber()
+    #endif
     let cleaner = LlamaServerCleaner()
 
     private let defaults = UserDefaults.standard
