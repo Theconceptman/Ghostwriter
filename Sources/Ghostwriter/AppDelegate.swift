@@ -54,8 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             w.title = "Welcome to Ghostwriter"
             w.setContentSize(NSSize(width: 560, height: 560))
             w.isReleasedWhenClosed = false
+            w.level = .floating
             onboardingWindow = w
         }
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         onboardingWindow?.makeKeyAndOrderFront(nil)
     }
