@@ -14,7 +14,7 @@ final class DictationController {
     private lazy var appContext = AppContextService(db: state.db)
 
     private var recordingStart: Date?
-    private var snapshot: (bundleID: String?, mode: CleanupMode) = (nil, .lightTouch)
+    private var snapshot: (bundleID: String?, mode: CleanupMode) = (nil, .raw)
     private var isProcessing = false
     private var isLatched = false
 
