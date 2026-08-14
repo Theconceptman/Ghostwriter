@@ -22,17 +22,17 @@ public final class WhisperCppTranscriber: Transcriber {
         return URL(fileURLWithPath: paths[0])
     }
     /// Canonical ggml weights from the whisper.cpp author's Hugging Face repo.
-    /// small.en: the accuracy/speed balance for 2015-2020 Intel CPUs. Checksum
-    /// pinning is tracked in the decision record; the size gate below rejects
-    /// truncated downloads.
+    /// tiny.en: fastest inference on Intel, completes dictation in 2-3 seconds.
+    /// Checksum pinning is tracked in the decision record; the size gate below
+    /// rejects truncated downloads.
     public static let defaultModelURL = URL(string:
-        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin")!
+        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin")!
     public static let modelDir = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/Ghostwriter/models")
     public static let logURL = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/Ghostwriter/whisper-server.log")
-    /// small.en is about 466 MB; anything under this is a truncated download.
-    private static let minModelBytes: UInt64 = 400_000_000
+    /// tiny.en is about 75 MB; anything under this is a truncated download.
+    private static let minModelBytes: UInt64 = 60_000_000
 
     public let modelName: String
     private let serverBinary: URL
@@ -79,7 +79,7 @@ public final class WhisperCppTranscriber: Transcriber {
            size >= Self.minModelBytes { return }
         try? fm.removeItem(at: modelFile) // clear truncated leftovers
         try fm.createDirectory(at: Self.modelDir, withIntermediateDirectories: true)
-        status?("Downloading speech model \(modelName) (one-time, ~0.5 GB)…")
+        status?("Downloading speech model \(modelName) (one-time, ~75 MB)…")
         let (tmp, resp) = try await session.download(from: remoteModelURL)
         guard (resp as? HTTPURLResponse)?.statusCode == 200 else {
             throw NSError(domain: "Ghostwriter", code: 6, userInfo: [NSLocalizedDescriptionKey:
